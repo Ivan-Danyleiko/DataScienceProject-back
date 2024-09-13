@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form
 from sqlalchemy.orm import Session
-from src.pdf_processing import extract_text_from_pdf
+from src.services.pdf_processing import extract_text_from_pdf
 from src.database.db import get_db
 from src.entity.models import DocumentText, QueryHistory, User
 from src.services.auth import auth_service
@@ -104,48 +104,48 @@ async def request_for_title_docs(
 
 
 
-@router.post("/request_for_logs/")
-async def request_for_logs(
-    current_user: User = Depends(auth_service.get_current_user),
-    db: Session = Depends(get_db),
-    document: str = Form(...),
-):
-    document_logs = db.query(QueryHistory).filter(
-        QueryHistory.user_id == current_user.id,
-        QueryHistory.document_name == document
-    ).all()
-    document_content = [(log.question, log.answer) for log in document_logs]
-    return document_content
+# @router.post("/request_for_logs/")
+# async def request_for_logs(
+#     current_user: User = Depends(auth_service.get_current_user),
+#     db: Session = Depends(get_db),
+#     document: str = Form(...),
+# ):
+#     document_logs = db.query(QueryHistory).filter(
+#         QueryHistory.user_id == current_user.id,
+#         QueryHistory.document_name == document
+#     ).all()
+#     document_content = [(log.question, log.answer) for log in document_logs]
+#     return document_content
 
 
 
 
 
-@router.post("/ask_question/")
-async def ask_question(
-    current_user: User = Depends(auth_service.get_current_user),
-    db: Session = Depends(get_db),
-    document: str = Form(...),
-    question: str = Form(...),
-):
-    document_record = db.query(DocumentText).filter(
-        DocumentText.user_id == current_user.id,
-        DocumentText.filename == document
-    ).first()
+# @router.post("/ask_question/")
+# async def ask_question(
+#     current_user: User = Depends(auth_service.get_current_user),
+#     db: Session = Depends(get_db),
+#     document: str = Form(...),
+#     question: str = Form(...),
+# ):
+#     document_record = db.query(DocumentText).filter(
+#         DocumentText.user_id == current_user.id,
+#         DocumentText.filename == document
+#     ).first()
 
-    if not document_record:
-        raise HTTPException(status_code=404, detail="Document not found")
+#     if not document_record:
+#         raise HTTPException(status_code=404, detail="Document not found")
 
-    answer_text = process_text(document_record.text, question)
+#     answer_text = process_text(document_record.text, question)
 
-    new_query_history = QueryHistory(
-        user_id=current_user.id,
-        document_id=document_record.id,
-        query=question,
-        response=answer_text,
-        timestamp=datetime.utcnow()
-    )
-    db.add(new_query_history)
-    db.commit()
+#     new_query_history = QueryHistory(
+#         user_id=current_user.id,
+#         document_id=document_record.id,
+#         query=question,
+#         response=answer_text,
+#         timestamp=datetime.utcnow()
+#     )
+#     db.add(new_query_history)
+#     db.commit()
 
-    return answer_text
+#     return answer_text

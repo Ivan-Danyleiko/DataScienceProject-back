@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from src.entity.models import QueryHistory
+from src.entity.models import QueryHistory, DocumentText
 from datetime import datetime
 from typing import Optional, List
 
@@ -32,3 +32,11 @@ def delete_query_history(db: Session, query_id: int, user_id: int) -> bool:
         db.commit()
         return True
     return False
+
+
+# Функція для отримання історії запитів користувача в залежності від користувача та документу
+def get_user_query_history_by_doc(db: Session, user_id: int, filename: str) -> List[QueryHistory]:
+    return db.query(QueryHistory).join(QueryHistory.document).filter(
+        QueryHistory.user_id == user_id,
+        DocumentText.filename == filename
+    ).order_by(QueryHistory.timestamp).all()

@@ -16,7 +16,7 @@ import uvicorn.logging
 from fastapi.middleware.cors import CORSMiddleware
 from src.conf.config import settings
 from src.database.db import engine, SessionLocal, get_db
-from src.routes import auth, users, pdf, query_history
+from src.routes import auth, users, pdf, query_history, model
 
 
 logger = logging.getLogger(uvicorn.logging.__name__)
@@ -51,6 +51,7 @@ app.include_router(auth.router, prefix='/api')
 app.include_router(pdf.router, prefix='/api')
 app.include_router(users.router, prefix='/api')
 app.include_router(query_history.router, prefix='/api')
+app.include_router(model.router, prefix='/api')
 
 
 @app.get("/")

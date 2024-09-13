@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form
 from sqlalchemy.orm import Session
 from src.database.db import get_db
 from src.schemas.schemas import QueryHistoryCreate, QueryHistoryResponse
@@ -47,3 +47,16 @@ async def delete_query_history(
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Query not found")
     return None
+
+
+# Отримання історії запитів користувача по документу
+@router.post("/get_query_history/")
+async def get_query_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth_service.get_current_user),
+    data: str = Form(...)
+):
+    history = repository.get_user_query_history_by_doc(db=db, user_id=current_user.id, filename = data)
+    history = [[log.query, log.response]  for log in history]
+    print(history)
+    return history
