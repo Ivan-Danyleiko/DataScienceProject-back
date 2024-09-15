@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, status
 from sqlalchemy.orm import Session
 from src.services.pdf_processing import extract_text_from_pdf
 from src.database.db import get_db
@@ -7,6 +7,7 @@ from src.entity.models import DocumentText, QueryHistory, User
 from src.services.auth import auth_service
 import os
 from src.services.model import process_text
+from src.repository.pdf import save_new_document, get_document_titles
 
 
 router = APIRouter(prefix="/pdf",tags=["PDF Upload"])
@@ -70,6 +71,37 @@ async def upload_pdf(
 
 
 
+# @router.post("/upload_new_pdf_test/")
+# async def upload_new_pdf_test(
+#     current_user: User = Depends(auth_service.get_current_user),
+#     db: Session = Depends(get_db),
+#     text: str = Form(...),
+#     description: str = Form(...),
+# ):
+#     new_document = DocumentText(
+#         user_id=current_user.id,
+#         filename=description,
+#         text=text
+#     )
+#     db.add(new_document)
+#     db.commit()
+#     return current_user
+
+
+
+
+
+# @router.post("/request_for_title_docs/")
+# async def request_for_title_docs(
+#     current_user: User = Depends(auth_service.get_current_user),
+#     db: Session = Depends(get_db),
+# ):
+#     name_documents = db.query(DocumentText.filename).filter(
+#         DocumentText.user_id == current_user.id).all()
+#     name_documents = [doc.filename for doc in name_documents]
+#     return name_documents
+
+
 @router.post("/upload_new_pdf_test/")
 async def upload_new_pdf_test(
     current_user: User = Depends(auth_service.get_current_user),
@@ -77,15 +109,12 @@ async def upload_new_pdf_test(
     text: str = Form(...),
     description: str = Form(...),
 ):
-    new_document = DocumentText(
-        user_id=current_user.id,
-        filename=description,
-        text=text
-    )
-    db.add(new_document)
-    db.commit()
-    return current_user
+    result = save_new_document(db, current_user.id, description, text)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail="PDF document already exists")
 
+    return {"message": "Document saved successfully"}
 
 
 
@@ -95,13 +124,8 @@ async def request_for_title_docs(
     current_user: User = Depends(auth_service.get_current_user),
     db: Session = Depends(get_db),
 ):
-    name_documents = db.query(DocumentText.filename).filter(
-        DocumentText.user_id == current_user.id).all()
-    name_documents = [doc.filename for doc in name_documents]
-    return name_documents
-
-
-
+    titles = get_document_titles(db, current_user.id)
+    return titles
 
 
 # @router.post("/request_for_logs/")
