@@ -2,7 +2,7 @@ from libgravatar import Gravatar
 from sqlalchemy.orm import Session
 # from typing import List
 # from datetime import datetime
-from src.entity.models import User
+from src.entity.models import User, DocumentText, QueryHistory
 from src.schemas.schemas import UserSchema, UserUpdateSchema, RoleUpdateSchema
 from sqlalchemy.future import select
 
@@ -71,6 +71,8 @@ async def update_token(user: User, token: str | None, db: Session) -> None:
     db.commit()
 
 async def delete_user(user_id: int, db: Session):
+    db.query(QueryHistory).filter(QueryHistory.user_id == user_id).delete()
+    db.query(DocumentText).filter(DocumentText.user_id == user_id).delete()
     user = db.query(User).filter(User.id == user_id).first()
     if user:
         db.delete(user)
