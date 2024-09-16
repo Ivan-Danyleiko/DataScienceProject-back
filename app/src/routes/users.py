@@ -57,12 +57,12 @@ async def update_user(
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
-    body: UserDeleteSchema,
+    # body: UserDeleteSchema,
     db: Session = Depends(get_db),
     current_user: User = Depends(auth_service.get_current_user)
 ):
-    if not auth_service.verify_password(body.password, current_user.password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
+    # if not auth_service.verify_password(body.password, current_user.password):
+    #     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
     
     deleted = await repositories_users.delete_user(current_user.id, db)
     if not deleted:
