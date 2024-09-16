@@ -58,5 +58,4 @@ async def get_query_history(
 ):
     history = repository.get_user_query_history_by_doc(db=db, user_id=current_user.id, filename = data)
     history = [[log.query, log.response]  for log in history]
-    print(history)
     return history
