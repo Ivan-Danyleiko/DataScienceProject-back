@@ -1,7 +1,7 @@
 name: Deploy Backend to Azure
 on:
   push:
-    branches: [ main, lolo ]
+    branches: [ main ]
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -15,10 +15,31 @@ jobs:
       run: |
         python -m venv env
         source env/bin/activate
-        pip install -r requirements.txt
+        pip install -r app/requirements.txt
+    - name: Set environment variables
+      run: |
+        echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> $GITHUB_ENV
+        echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> $GITHUB_ENV
+        echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> $GITHUB_ENV
+        echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> $GITHUB_ENV
+        echo "POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}" >> $GITHUB_ENV
+        echo "SQLALCHEMY_DATABASE_URL=${{ secrets.SQLALCHEMY_DATABASE_URL }}" >> $GITHUB_ENV
+        echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
+        echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> $GITHUB_ENV
+        echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> $GITHUB_ENV
+        echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> $GITHUB_ENV
+        echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> $GITHUB_ENV
+        echo "CLOUDINARY_NAME=${{ secrets.CLOUDINARY_NAME }}" >> $GITHUB_ENV
+        echo "RATE_LIMITER_TIMES=${{ secrets.RATE_LIMITER_TIMES }}" >> $GITHUB_ENV
+        echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> $GITHUB_ENV
+    - name: Run Alembic migrations
+      run: |
+        source env/bin/activate
+        cd app
+        alembic upgrade head
     - name: Create startup command file
       run: |
-        echo "gunicorn app.main:app --bind=0.0.0.0 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > startup.txt
+        echo "cd app && gunicorn main:app --bind=0.0.0.0 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > startup.txt
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
