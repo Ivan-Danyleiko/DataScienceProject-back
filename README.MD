@@ -5,11 +5,10 @@ This project is a FastAPI application that allows users to download PDF document
 ## Features
 
 - User registration and authentication with JWT tokens
-- User roles (admin, user) with different access levels
-- Redis for caching and rate limiting
 - PostgreSQL database for data storage
 - Email verification and password reset
-- Role management
+- receiving answers to requests for a PDF document
+
 
 ## Getting Started
 
@@ -49,33 +48,14 @@ alembic upgrade head
 python main.py
 ```
 
-7. Access the API documentation at `http://localhost:8000/docs`.
-
-## API Endpoints
-
-### Authentication
-
-- **POST /api/auth/signup**: Register a new user.
-- **POST /api/auth/login**: Log in an existing user.
-- **POST /api/auth/refresh_token**: Refresh the access token.
-- **POST /api/auth/logout**: Log out the current user.
-
-### Users
-
-- **GET /api/users/me**: Get the current user's profile.
-- **PUT /api/users/**: Update the current user's profile.
-- **PUT /api/users/avatar**: Update the current user's avatar.
-
-## Developed by:
-
 ### PyMagic team:
 
 - [Roman Hnatiak](https://github.com/Hnatiak)
 - [Gennadiy Shpak](https://github.com/gyshpak)
 - [Olena Polkhova](https://github.com/ElenaPolkhovaS)
 - [Mykyta Terpelovskyi](https://github.com/Dremorio)
-- 
-- 
+- [Ivan Danyleiko](https://github.com/Ivan-Danyleiko)
+
 
 ## FOR DEVS:
 
