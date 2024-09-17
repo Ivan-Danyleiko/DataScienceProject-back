@@ -73,7 +73,7 @@ python main.py
 - [Roman Hnatiak](https://github.com/Hnatiak)
 - [Gennadiy Shpak](https://github.com/gyshpak)
 - [Olena Polkhova](https://github.com/ElenaPolkhovaS)
-- 
+- [Mykyta Terpelovskyi](https://github.com/Dremorio)
 - 
 - 
 
