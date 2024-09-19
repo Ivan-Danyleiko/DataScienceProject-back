@@ -44,6 +44,7 @@ jobs:
         echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> $GITHUB_ENV
 
     - name: Run Alembic migrations
+      working-directory: ./app
       run: |
         poetry run alembic upgrade head
 
