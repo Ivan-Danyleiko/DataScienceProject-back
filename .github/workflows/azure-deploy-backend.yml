@@ -19,8 +19,9 @@ jobs:
     - name: Install Poetry
       run: |
         curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-    - name: Install dependencies
+    - name: Install dependencies with Poetry
       run: |
         poetry install --no-interaction --no-root
 
@@ -47,7 +48,7 @@ jobs:
 
     - name: Create startup command file
       run: |
-        echo "cd app && gunicorn main:app --bind=0.0.0.0 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > startup.txt
+        echo "cd app && gunicorn main:app --bind=0.0.0.0:8000 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > startup.txt
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
@@ -55,3 +56,4 @@ jobs:
         app-name: 'datascienceproject-backend-12345'
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: .
+
