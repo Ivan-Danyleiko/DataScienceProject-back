@@ -3,6 +3,7 @@ name: Deploy Backend to Azure
 on:
   push:
     branches: [ lolo ]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
