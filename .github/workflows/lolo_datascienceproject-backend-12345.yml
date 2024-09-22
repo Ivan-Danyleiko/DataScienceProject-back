@@ -22,6 +22,19 @@ jobs:
         curl -sSL https://install.python-poetry.org | python3 -
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+    - name: Print Poetry version
+      run: poetry --version
+
+    - name: Debug - Print pyproject.toml and poetry.lock
+      run: |
+        echo "Content of pyproject.toml:"
+        cat pyproject.toml
+        echo "Content of poetry.lock:"
+        cat poetry.lock
+
+    - name: Update poetry.lock
+      run: poetry lock --no-update
+
     - name: Install dependencies with Poetry
       run: |
         poetry install --no-interaction --no-root
@@ -43,26 +56,14 @@ jobs:
         echo "RATE_LIMITER_TIMES=${{ secrets.RATE_LIMITER_TIMES }}" >> $GITHUB_ENV
         echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> $GITHUB_ENV
 
-    # Додаємо крок для виведення поточної директорії та її вмісту
     - name: Debug - Print current directory
       run: |
         pwd
         ls -la
 
-    # Додаємо крок для переходу в директорію app
-    - name: Change to app directory
-      run: cd app
-
-    # Додаємо крок для виведення вмісту директорії app
-    - name: Debug - Print app directory contents
-      run: |
-        pwd
-        ls -la
-
-    # Оновлюємо крок виконання міграцій Alembic
     - name: Run Alembic migrations
       run: |
-        cd app  # Переходимо в директорію app перед виконанням міграцій
+        cd app
         poetry run alembic upgrade head
 
     - name: Create startup command file
