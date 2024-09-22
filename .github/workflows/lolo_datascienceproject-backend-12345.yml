@@ -22,19 +22,6 @@ jobs:
         curl -sSL https://install.python-poetry.org | python3 -
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-    - name: Print Poetry version
-      run: poetry --version
-
-    - name: Debug - Print pyproject.toml and poetry.lock
-      run: |
-        echo "Content of pyproject.toml:"
-        cat pyproject.toml
-        echo "Content of poetry.lock:"
-        cat poetry.lock
-
-    - name: Update poetry.lock
-      run: poetry lock --no-update
-
     - name: Install dependencies with Poetry
       run: |
         poetry install --no-interaction --no-root
@@ -56,10 +43,16 @@ jobs:
         echo "RATE_LIMITER_TIMES=${{ secrets.RATE_LIMITER_TIMES }}" >> $GITHUB_ENV
         echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> $GITHUB_ENV
 
-    - name: Debug - Print current directory
+    - name: Debug - Print current directory and contents
       run: |
         pwd
         ls -la
+        echo "Content of app directory:"
+        ls -la app
+
+    - name: Debug - Print Alembic configuration
+      run: |
+        cat app/alembic.ini
 
     - name: Run Alembic migrations
       run: |
