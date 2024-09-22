@@ -22,6 +22,16 @@ jobs:
         curl -sSL https://install.python-poetry.org | python3 -
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+    - name: Configure Poetry
+      run: |
+        poetry config virtualenvs.create false
+
+    - name: Debug - Print pyproject.toml
+      run: cat pyproject.toml
+
+    - name: Update Poetry lock file
+      run: poetry lock --no-update
+
     - name: Install dependencies with Poetry
       run: |
         poetry install --no-interaction --no-root
@@ -46,7 +56,6 @@ jobs:
     - name: Run Alembic migrations
       run: |
         poetry run alembic -c app/alembic.ini upgrade head
-      
 
     - name: Create startup command file
       run: |
