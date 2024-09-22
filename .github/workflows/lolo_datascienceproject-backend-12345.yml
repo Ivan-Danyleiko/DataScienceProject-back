@@ -43,21 +43,10 @@ jobs:
         echo "RATE_LIMITER_TIMES=${{ secrets.RATE_LIMITER_TIMES }}" >> $GITHUB_ENV
         echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> $GITHUB_ENV
 
-    - name: Debug - Print current directory and contents
-      run: |
-        pwd
-        ls -la
-        echo "Content of app directory:"
-        ls -la app
-
-    - name: Debug - Print Alembic configuration
-      run: |
-        cat app/alembic.ini
-
     - name: Run Alembic migrations
       run: |
-        cd app
-        poetry run alembic upgrade head
+        poetry run alembic -c app/alembic.ini upgrade head
+      
 
     - name: Create startup command file
       run: |
