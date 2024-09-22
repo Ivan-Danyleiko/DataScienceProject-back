@@ -43,10 +43,27 @@ jobs:
         echo "RATE_LIMITER_TIMES=${{ secrets.RATE_LIMITER_TIMES }}" >> $GITHUB_ENV
         echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> $GITHUB_ENV
 
+    # Додаємо крок для виведення поточної директорії та її вмісту
+    - name: Debug - Print current directory
+      run: |
+        pwd
+        ls -la
+
+    # Додаємо крок для переходу в директорію app
+    - name: Change to app directory
+      run: cd app
+
+    # Додаємо крок для виведення вмісту директорії app
+    - name: Debug - Print app directory contents
+      run: |
+        pwd
+        ls -la
+
+    # Оновлюємо крок виконання міграцій Alembic
     - name: Run Alembic migrations
       run: |
-        poetry run alembic -c app/alembic.ini upgrade head
-      
+        cd app  # Переходимо в директорію app перед виконанням міграцій
+        poetry run alembic upgrade head
 
     - name: Create startup command file
       run: |
@@ -58,4 +75,3 @@ jobs:
         app-name: 'datascienceproject-backend-12345'
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: .
-
