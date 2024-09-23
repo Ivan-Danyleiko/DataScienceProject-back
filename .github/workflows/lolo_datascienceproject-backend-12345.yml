@@ -27,31 +27,31 @@ jobs:
         pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 -f https://download.pytorch.org/whl/cpu/torch_stable.html
         pip install transformers==4.32.0
 
-        - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-  
-        - name: Configure Poetry
-          run: |
-            poetry config virtualenvs.create false
-    
-        - name: Remove existing poetry.lock
-          run: rm -f poetry.lock
-    
-        - name: Generate new poetry.lock
-          run: poetry lock
-    
-        - name: Install dependencies with Poetry
-          run: poetry install --no-interaction --no-root
-    
-        - name: Fallback to pip if Poetry fails
-          if: failure()
-          run: |
-            pip install -r <(poetry export --format=requirements.txt --without-hashes)
-    
-        - name: Print installed packages
-          run: pip list
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH 
+
+    - name: Configure Poetry
+      run: |
+        poetry config virtualenvs.create false
+
+    - name: Remove existing poetry.lock
+      run: rm -f poetry.lock
+
+    - name: Generate new poetry.lock
+      run: poetry lock
+
+    - name: Install dependencies with Poetry
+      run: poetry install --no-interaction --no-root
+
+    - name: Fallback to pip if Poetry fails
+      if: failure()
+      run: |
+        pip install -r <(poetry export --format=requirements.txt --without-hashes)
+
+    - name: Print installed packages
+      run: pip list
 
     - name: Set environment variables
       run: |
