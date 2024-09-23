@@ -15,14 +15,15 @@ class Settings(BaseSettings):
     mail_port: int
     mail_server: str
     cors_origins: str
-    # rate_limiter_times: int
-    # rate_limiter_seconds: int
 
-    @validator('mail_port', pre=True, always=True)
-    def check_mail_port(cls, value):
-        if not isinstance(value, int):
-            raise ValueError("MAIL_PORT must be an integer")
-        return value
+    @validator('mail_port', pre=True)
+    def parse_mail_port(cls, v):
+        if isinstance(v, int):
+            return v
+        try:
+            return int(v)
+        except ValueError:
+            raise ValueError("MAIL_PORT must be a valid integer")
 
     model_config = ConfigDict(extra='ignore', env_file=env_file if env_file.exists() else None, env_file_encoding = "utf-8")
 

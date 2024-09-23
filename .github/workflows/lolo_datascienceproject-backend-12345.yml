@@ -67,7 +67,7 @@ jobs:
         echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> $GITHUB_ENV
         echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> $GITHUB_ENV
         echo "MAIL_FROM_NAME=${{ secrets.MAIL_FROM_NAME }}" >> $GITHUB_ENV
-        echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> $GITHUB_ENV
+        echo "MAIL_PORT=465" >> $GITHUB_ENV
         echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> $GITHUB_ENV
         echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> $GITHUB_ENV
 
@@ -83,6 +83,9 @@ jobs:
         pwd
         ls -R
 
+    - name: Print MAIL_PORT
+      run: echo $MAIL_PORT
+      
     - name: Run Alembic migrations
       run: |
         cd app
