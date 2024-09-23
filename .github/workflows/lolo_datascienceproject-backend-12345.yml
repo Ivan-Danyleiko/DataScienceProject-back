@@ -32,15 +32,28 @@ jobs:
         poetry config virtualenvs.create false
         poetry install --no-interaction --no-root
 
-    - name: Check environment variables
+    - name: Set environment variables
       run: |
-        required_vars=("SQLALCHEMY_DATABASE_URL" "SECRET_KEY" "ALGORITHM" "MAIL_USERNAME" "MAIL_PASSWORD" "MAIL_FROM" "MAIL_FROM_NAME" "MAIL_PORT" "MAIL_SERVER" "CORS_ORIGINS")
-        for var in "${required_vars[@]}"
+        echo "SQLALCHEMY_DATABASE_URL=${{ secrets.SQLALCHEMY_DATABASE_URL }}" >> $GITHUB_ENV
+        echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
+        echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> $GITHUB_ENV
+        echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> $GITHUB_ENV
+        echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> $GITHUB_ENV
+        echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> $GITHUB_ENV
+        echo "MAIL_FROM_NAME=${{ secrets.MAIL_FROM_NAME }}" >> $GITHUB_ENV
+        echo "MAIL_PORT=465" >> $GITHUB_ENV
+        echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> $GITHUB_ENV
+        echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> $GITHUB_ENV
+
+    - name: Verify environment variables
+      run: |
+        for var in SQLALCHEMY_DATABASE_URL SECRET_KEY ALGORITHM MAIL_USERNAME MAIL_PASSWORD MAIL_FROM MAIL_FROM_NAME MAIL_PORT MAIL_SERVER CORS_ORIGINS
         do
           if [ -z "${!var}" ]; then
-            echo "Warning: $var is not set in the current environment"
+            echo "Error: $var is not set"
+            exit 1
           else
-            echo "$var is available in the environment"
+            echo "$var is set"
           fi
         done
 
