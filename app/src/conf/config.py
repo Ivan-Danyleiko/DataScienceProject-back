@@ -1,5 +1,5 @@
 from pathlib import Path
-from pydantic import ConfigDict
+from pydantic import ConfigDict, BaseSettings, validator
 from pydantic_settings import BaseSettings
 
 env_file = Path(__file__).parent.parent.parent.parent / ".env"
