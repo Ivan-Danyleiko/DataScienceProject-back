@@ -53,23 +53,6 @@ jobs:
     - name: Print installed packages
       run: pip list
 
-    - name: Test database connection
-      run: |
-        python -c "
-        from sqlalchemy import create_engine
-        from sqlalchemy.exc import SQLAlchemyError
-        import os
-
-        try:
-            engine = create_engine(os.getenv('SQLALCHEMY_DATABASE_URL'))
-            with engine.connect() as connection:
-                result = connection.execute('SELECT 1')
-                print('Successfully connected to the database')
-        except SQLAlchemyError as e:
-            print(f'Error connecting to the database: {e}')
-            exit(1)
-        "
-
     - name: Set environment variables
       run: |
         echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> $GITHUB_ENV
@@ -103,6 +86,23 @@ jobs:
     - name: Print MAIL_PORT
       run: echo $MAIL_PORT
 
+    - name: Test database connection
+      run: |
+        python -c "
+        from sqlalchemy import create_engine
+        from sqlalchemy.exc import SQLAlchemyError
+        import os
+
+        try:
+            engine = create_engine(os.getenv('SQLALCHEMY_DATABASE_URL'))
+            with engine.connect() as connection:
+                result = connection.execute('SELECT 1')
+                print('Successfully connected to the database')
+        except SQLAlchemyError as e:
+            print(f'Error connecting to the database: {e}')
+            exit(1)
+        "
+      
     - name: Run Alembic migrations
       run: |
         cd app
