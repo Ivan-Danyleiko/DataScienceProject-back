@@ -63,11 +63,12 @@ jobs:
         echo "SQLALCHEMY_DATABASE_URL=${{ secrets.SQLALCHEMY_DATABASE_URL }}" >> $GITHUB_ENV
         echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
         echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> $GITHUB_ENV
-        echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> $GITHUB_ENV
+        echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> $GITHUB_ENV
         echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> $GITHUB_ENV
+        echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> $GITHUB_ENV
+        echo "MAIL_FROM_NAME=${{ secrets.MAIL_FROM_NAME }}" >> $GITHUB_ENV
+        echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> $GITHUB_ENV
         echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> $GITHUB_ENV
-        echo "CLOUDINARY_NAME=${{ secrets.CLOUDINARY_NAME }}" >> $GITHUB_ENV
-        echo "RATE_LIMITER_TIMES=${{ secrets.RATE_LIMITER_TIMES }}" >> $GITHUB_ENV
         echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> $GITHUB_ENV
 
     - name: Debug - Print current directory and contents
@@ -76,6 +77,11 @@ jobs:
         ls -la
         echo "Content of app directory:"
         ls -la app
+
+    - name: Print directory structure
+      run: |
+        pwd
+        ls -R
 
     - name: Run Alembic migrations
       run: |

@@ -8,13 +8,13 @@ class Settings(BaseSettings):
     sqlalchemy_database_url: str
     secret_key: str
     algorithm: str
-    mail_username: str
-    mail_password: str
-    mail_from: str
-    mail_from_name: str
-    mail_port: int
-    mail_server: str
-    cors_origins: str
+    mail_username: str | None = None
+    mail_password: str | None = None
+    mail_from: str | None = None
+    mail_from_name: str | None = None
+    mail_port: int | None = None
+    mail_server: str | None = None
+    cors_origins: str | None = None
     # rate_limiter_times: int
     # rate_limiter_seconds: int
 
