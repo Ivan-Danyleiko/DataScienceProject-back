@@ -86,22 +86,24 @@ jobs:
     - name: Print MAIL_PORT
       run: echo $MAIL_PORT
 
-    - name: Test database connection
+    - name: Test new database connection
       run: |
         python -c "
         from sqlalchemy import create_engine
         from sqlalchemy.exc import SQLAlchemyError
         import os
 
+        db_url = os.getenv('SQLALCHEMY_DATABASE_URL')
+        print(f'Attempting to connect to: {db_url.split("@")[1].split("/")[0]}')  # Print only the host, not the full URL for security
+
         try:
-            engine = create_engine(os.getenv('SQLALCHEMY_DATABASE_URL'))
+            engine = create_engine(db_url)
             with engine.connect() as connection:
-                result = connection.execute('SELECT 1')
-                print('Successfully connected to the database')
+                result = connection.execute('SELECT 1').scalar()
+                print(f'Successfully connected to the database. Test query result: {result}')
         except SQLAlchemyError as e:
             print(f'Error connecting to the database: {e}')
             exit(1)
-        "
       
     - name: Run Alembic migrations
       run: |
