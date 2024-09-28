@@ -16,6 +16,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
+      - ./bd_data:/var/lib/postgresql/data
       - type: bind
         source: ./bd_data
         target: /var/lib/postgresql/data
