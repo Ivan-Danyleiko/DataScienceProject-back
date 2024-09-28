@@ -82,7 +82,6 @@ jobs:
 
     - name: Run Alembic migrations
       run: |
-        cd app
         alembic upgrade head
 
     - name: Create startup command file
