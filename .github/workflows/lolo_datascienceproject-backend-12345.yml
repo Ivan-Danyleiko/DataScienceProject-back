@@ -87,7 +87,7 @@ jobs:
 
     - name: Create startup command file
       run: |
-        echo "cd app && gunicorn main:app --bind=0.0.0.0:8000 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > startup.txt
+        echo "gunicorn app.main:app --bind=0.0.0.0:8000 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > startup.txt
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
@@ -95,3 +95,12 @@ jobs:
         app-name: 'datascienceproject-backend-12345'
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: .
+
+    - name: Get deployment logs
+      run: |
+        az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+        az webapp log download --name datascienceproject-backend-12345 --resource-group YourResourceGroupName
+
+    - name: Clear Azure Web App deployment cache
+      run: |
+        az webapp deployment source config-zip --resource-group YourResourceGroupName --name datascienceproject-backend-12345 --src /dev/null
