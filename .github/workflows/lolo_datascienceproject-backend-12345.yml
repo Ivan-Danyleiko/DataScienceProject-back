@@ -32,6 +32,10 @@ jobs:
         poetry config virtualenvs.create false
         poetry install --no-interaction --no-root
 
+    - name: Generate requirements.txt
+      run: |
+        poetry export -f requirements.txt --output requirements.txt --without-hashes
+
     - name: Set environment variables
       run: |
         echo "SQLALCHEMY_DATABASE_URL=${{ secrets.SQLALCHEMY_DATABASE_URL }}" >> $GITHUB_ENV
@@ -45,41 +49,6 @@ jobs:
         echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> $GITHUB_ENV
         echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> $GITHUB_ENV
 
-    - name: Verify environment variables
-      run: |
-        for var in SQLALCHEMY_DATABASE_URL SECRET_KEY ALGORITHM MAIL_USERNAME MAIL_PASSWORD MAIL_FROM MAIL_FROM_NAME MAIL_PORT MAIL_SERVER CORS_ORIGINS
-        do
-          if [ -z "${!var}" ]; then
-            echo "Error: $var is not set"
-            exit 1
-          else
-            echo "$var is set"
-          fi
-        done
-
-    - name: Test database connection
-      run: |
-        python - << EOF
-        import os
-        from sqlalchemy import create_engine, text
-        from sqlalchemy.exc import SQLAlchemyError
-
-        db_url = os.getenv('SQLALCHEMY_DATABASE_URL')
-        print(f'Attempting to connect to database...')
-
-        try:
-            engine = create_engine(db_url)
-            with engine.connect() as connection:
-                result = connection.execute(text("SELECT 1")).scalar()
-                print(f'Successfully connected to the database. Test query result: {result}')
-        except SQLAlchemyError as e:
-            print(f'SQLAlchemy error: {e}')
-            exit(1)
-        except Exception as e:
-            print(f'Unexpected error: {e}')
-            exit(1)
-        EOF
-
     - name: Run Alembic migrations
       run: |
         cd app
@@ -89,6 +58,16 @@ jobs:
       run: |
         echo "gunicorn app.main:app --bind=0.0.0.0:8000 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > startup.txt
 
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Clear previous deployment
+      run: |
+        az webapp deployment source delete --name datascienceproject-backend-12345 --resource-group YourResourceGroupName
+      continue-on-error: true
+
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
@@ -97,10 +76,7 @@ jobs:
         package: .
 
     - name: Get deployment logs
+      if: failure()
       run: |
-        az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
         az webapp log download --name datascienceproject-backend-12345 --resource-group YourResourceGroupName
-
-    - name: Clear Azure Web App deployment cache
-      run: |
-        az webapp deployment source config-zip --resource-group YourResourceGroupName --name datascienceproject-backend-12345 --src /dev/null
+        az webapp log tail --name datascienceproject-backend-12345 --resource-group YourResourceGroupName
