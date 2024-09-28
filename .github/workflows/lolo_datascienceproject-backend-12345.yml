@@ -61,7 +61,7 @@ jobs:
       run: |
         python - << EOF
         import os
-        from sqlalchemy import create_engine
+        from sqlalchemy import create_engine, text
         from sqlalchemy.exc import SQLAlchemyError
 
         db_url = os.getenv('SQLALCHEMY_DATABASE_URL')
@@ -82,6 +82,7 @@ jobs:
 
     - name: Run Alembic migrations
       run: |
+        cd app
         alembic upgrade head
 
     - name: Create startup command file
