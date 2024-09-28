@@ -17,8 +17,6 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 from src.database.models import Base
 target_metadata = Base.metadata
 
@@ -27,9 +25,12 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+def get_url():
+    return os.getenv("SQLALCHEMY_DATABASE_URL")
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
-    url = os.getenv("SQLALCHEMY_DATABASE_URL")
+    url = get_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -43,7 +44,7 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = os.getenv("SQLALCHEMY_DATABASE_URL")
+    configuration["sqlalchemy.url"] = get_url()
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
