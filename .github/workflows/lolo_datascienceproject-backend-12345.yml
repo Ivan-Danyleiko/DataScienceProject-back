@@ -58,16 +58,6 @@ jobs:
       run: |
         echo "gunicorn app.main:app --bind=0.0.0.0:8000 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > startup.txt
 
-    - name: Login to Azure
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-    - name: Clear previous deployment
-      run: |
-        az webapp deployment source delete --name datascienceproject-backend-12345 --resource-group YourResourceGroupName
-      continue-on-error: true
-
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
@@ -75,8 +65,11 @@ jobs:
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: .
 
-    - name: Get deployment logs
-      if: failure()
-      run: |
-        az webapp log download --name datascienceproject-backend-12345 --resource-group YourResourceGroupName
-        az webapp log tail --name datascienceproject-backend-12345 --resource-group YourResourceGroupName
+    - name: Azure CLI script
+      uses: azure/CLI@v1
+      with:
+        azcliversion: latest
+        inlineScript: |
+          az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group YourResourceGroupName --settings WEBSITE_RUN_FROM_PACKAGE=1
+          az webapp config set --name datascienceproject-backend-12345 --resource-group YourResourceGroupName --linux-fx-version "PYTHON|3.10"
+          az webapp log tail --name datascienceproject-backend-12345 --resource-group YourResourceGroupName
