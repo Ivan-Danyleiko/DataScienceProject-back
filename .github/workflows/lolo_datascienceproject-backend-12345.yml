@@ -17,22 +17,13 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install and upgrade pip
+    - name: Install and configure dependencies
       run: |
         python -m pip install --upgrade pip
-        pip --version
-
-    - name: Install Poetry
-      run: |
-        curl -sSL https://install.python-poetry.org | python3 -
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Generate requirements.txt
-      run: |
+        pip install poetry
+        poetry config virtualenvs.create false
+        poetry install --no-interaction --no-root
         poetry export -f requirements.txt --output requirements.txt --without-hashes
-
-    - name: Install dependencies
-      run: |
         pip install -r requirements.txt
 
     - name: Set environment variables
@@ -57,12 +48,16 @@ jobs:
       run: |
         echo "gunicorn app.main:app --bind=0.0.0.0:8000 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > startup.txt
 
-    - name: Clean up old deployments
-      uses: azure/CLI@v1
+    - name: Azure Login
+      uses: azure/login@v1
       with:
-        inlineScript: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az webapp deployment list-deployments --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "[?id!='active'].id" -o tsv | xargs -I % az webapp deployment delete --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --ids %
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Verify Azure Login and clean up old deployments
+      run: |
+        az account show
+        az group list --query "[].name" -o tsv
+        az webapp deployment list-deployments --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "[?id!='active'].id" -o tsv | xargs -I % az webapp deployment delete --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --ids %
 
     - name: Check package size
       run: |
@@ -80,15 +75,11 @@ jobs:
         clean: true
 
     - name: Configure Azure Web App
-      uses: azure/CLI@v1
-      with:
-        inlineScript: |
-          az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings WEBSITE_RUN_FROM_PACKAGE=1
-          az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --linux-fx-version "PYTHON|3.10"
+      run: |
+        az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings WEBSITE_RUN_FROM_PACKAGE=1
+        az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --linux-fx-version "PYTHON|3.10"
 
     - name: Get deployment logs
       if: failure()
-      uses: azure/CLI@v1
-      with:
-        inlineScript: |
-          az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
+      run: |
+        az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
