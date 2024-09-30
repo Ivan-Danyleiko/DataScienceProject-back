@@ -27,14 +27,13 @@ jobs:
         curl -sSL https://install.python-poetry.org | python3 -
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-    - name: Configure Poetry and install dependencies
-      run: |
-        poetry config virtualenvs.create false
-        poetry install --no-interaction --no-root
-
     - name: Generate requirements.txt
       run: |
         poetry export -f requirements.txt --output requirements.txt --without-hashes
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
 
     - name: Set environment variables
       run: |
@@ -58,18 +57,38 @@ jobs:
       run: |
         echo "gunicorn app.main:app --bind=0.0.0.0:8000 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > startup.txt
 
+    - name: Clean up old deployments
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az webapp deployment list-deployments --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "[?id!='active'].id" -o tsv | xargs -I % az webapp deployment delete --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --ids %
+
+    - name: Check package size
+      run: |
+        echo "Package size:"
+        du -sh .
+        echo "Largest files/directories:"
+        du -sh * | sort -rh | head -n 10
+
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
         app-name: 'datascienceproject-backend-12345'
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: .
+        clean: true
 
-    - name: Azure CLI script
+    - name: Configure Azure Web App
       uses: azure/CLI@v1
       with:
-        azcliversion: latest
         inlineScript: |
-          az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group YourResourceGroupName --settings WEBSITE_RUN_FROM_PACKAGE=1
-          az webapp config set --name datascienceproject-backend-12345 --resource-group YourResourceGroupName --linux-fx-version "PYTHON|3.10"
-          az webapp log tail --name datascienceproject-backend-12345 --resource-group YourResourceGroupName
+          az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings WEBSITE_RUN_FROM_PACKAGE=1
+          az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --linux-fx-version "PYTHON|3.10"
+
+    - name: Get deployment logs
+      if: failure()
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
