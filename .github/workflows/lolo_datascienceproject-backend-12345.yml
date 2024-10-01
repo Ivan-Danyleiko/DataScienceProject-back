@@ -22,14 +22,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install poetry
         poetry config virtualenvs.create false
-        poetry add uvicorn gunicorn
+        poetry add uvicorn gunicorn fastapi
         poetry install --no-dev --no-interaction --no-root
         poetry export -f requirements.txt --output requirements.txt --without-hashes
         pip install -r requirements.txt
 
     - name: Update requirements.txt
       run: |
-        pip install uvicorn gunicorn fastapi
         pip freeze > requirements.txt
         echo "Contents of requirements.txt:"
         cat requirements.txt
@@ -90,8 +89,11 @@ jobs:
         az webapp config appsettings list --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup -o table
 
     - name: Deploy to Azure Web App
-      run: |
-        az webapp deployment source config-zip --resource-group DataScienceProjectGroup --name datascienceproject-backend-12345 --src deploy.zip
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'datascienceproject-backend-12345'
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
+        package: ./deploy.zip
 
     - name: Restart Web App
       run: |
@@ -99,11 +101,11 @@ jobs:
 
     - name: Wait for app to start
       run: |
-        sleep 30
+        sleep 60
 
     - name: Check application logs
       run: |
-        az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
+        az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --filter Error
 
     - name: Get detailed deployment logs
       if: failure()
