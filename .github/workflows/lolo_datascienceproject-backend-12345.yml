@@ -22,14 +22,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install poetry
         poetry config virtualenvs.create false
-        poetry install --no-interaction --no-root
-        poetry add uvicorn
+        poetry add uvicorn gunicorn
+        poetry install --no-dev --no-interaction --no-root
         poetry export -f requirements.txt --output requirements.txt --without-hashes
         pip install -r requirements.txt
 
     - name: Update requirements.txt
       run: |
-        pip install uvicorn
         pip freeze > requirements.txt
         echo "Contents of requirements.txt:"
         cat requirements.txt
@@ -66,12 +65,18 @@ jobs:
     - name: Prepare and check deployment package
       run: |
         mkdir deploy && cp -r app requirements.txt deploy/
-        echo "gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind=0.0.0.0:8000" > deploy/startup.txt
+        echo "gunicorn app.main:app --bind=0.0.0.0:8000 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
         cd deploy && zip -r ../deploy.zip . -x "*.git*" "*.pytest_cache*" "*.mypy_cache*" "bd_data/*"
         echo "Size of deploy.zip:" && du -sh ../deploy.zip
         echo "Contents of deploy.zip:" && unzip -l ../deploy.zip
         echo "First few lines of startup.txt:"
         unzip -p ../deploy.zip startup.txt | head -n 5
+
+    - name: Check deploy.zip content
+      run: |
+        unzip -l deploy.zip
+        echo "Contents of requirements.txt:"
+        unzip -p deploy.zip requirements.txt
 
     - name: Check and update Azure Web App
       run: |
@@ -85,7 +90,11 @@ jobs:
 
     - name: Deploy to Azure Web App
       run: |
-        az webapp deployment source config-zip --resource-group DataScienceProjectGroup --name datascienceproject-backend-12345 --src deploy.zip --debug
+        az webapp deployment source config-zip --resource-group DataScienceProjectGroup --name datascienceproject-backend-12345 --src deploy.zip --debug --clean true
+
+    - name: Restart Web App
+      run: |
+        az webapp restart --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
 
     - name: Check application logs
       run: |

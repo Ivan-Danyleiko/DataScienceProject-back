@@ -2,7 +2,6 @@ from datetime import datetime
 import os
 import signal
 import traceback
-from pytest import Session
 from sqlalchemy import text
 import uvicorn
 import logging
