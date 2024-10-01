@@ -58,25 +58,41 @@ jobs:
       run: |
         az account show
         az group list --query "[].name" -o tsv
-        az webapp deployment list-deployments --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "[?id!='active'].id" -o tsv | xargs -I % az webapp deployment delete --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --ids %
+        az webapp deployment list --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "[?active==null].id" -o tsv | xargs -I % az webapp deployment delete --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --ids %
 
-    - name: Check package content and size
+    - name: Check package size and content
       run: |
+        echo "Total package size:"
+        du -sh .
+        echo "Size of each directory:"
+        du -sh */ | sort -hr
         echo "Package content:"
         ls -R
         echo "requirements.txt content:"
         cat requirements.txt
-        echo "Package size:"
-        du -sh .
-        echo "Largest files/directories:"
-        du -sh * | sort -rh | head -n 10
+
+    - name: Check App Service Configuration
+      run: |
+        az webapp config show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
+
+    - name: Prepare deployment package
+      run: |
+        mkdir deploy
+        cp -r app requirements.txt startup.txt deploy/
+        cd deploy
+        zip -r ../deploy.zip .
+
+    - name: Check deployment package content
+      run: |
+        echo "Deployment package content:"
+        unzip -l deploy.zip
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
         app-name: 'datascienceproject-backend-12345'
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
-        package: .
+        package: ./deploy.zip
 
     - name: Configure Azure Web App
       run: |
@@ -87,3 +103,9 @@ jobs:
       if: always()
       run: |
         az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
+
+    - name: Get detailed deployment logs
+      if: failure()
+      run: |
+        az webapp log download --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
+        unzip -p *.zip
