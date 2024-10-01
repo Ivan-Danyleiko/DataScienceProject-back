@@ -60,31 +60,18 @@ jobs:
         az group list --query "[].name" -o tsv
         az webapp deployment list --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "[?active==null].id" -o tsv | xargs -I % az webapp deployment delete --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --ids %
 
-    - name: Check package size and content
-      run: |
-        echo "Total package size:"
-        du -sh .
-        echo "Size of each directory:"
-        du -sh */ | sort -hr
-        echo "Package content:"
-        ls -R
-        echo "requirements.txt content:"
-        cat requirements.txt
-
-    - name: Check App Service Configuration
-      run: |
-        az webapp config show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
-
     - name: Prepare deployment package
       run: |
         mkdir deploy
         cp -r app requirements.txt startup.txt deploy/
         cd deploy
-        zip -r ../deploy.zip .
+        zip -r ../deploy.zip . -x "*.git*" "*.pytest_cache*" "*.mypy_cache*" "bd_data/*"
 
-    - name: Check deployment package content
+    - name: Check deployment package
       run: |
-        echo "Deployment package content:"
+        echo "Size of deploy.zip:"
+        du -sh deploy.zip
+        echo "Contents of deploy.zip:"
         unzip -l deploy.zip
 
     - name: Deploy to Azure Web App
