@@ -27,6 +27,13 @@ jobs:
         poetry export -f requirements.txt --output requirements.txt --without-hashes
         pip install -r requirements.txt
 
+    - name: Update requirements.txt
+      run: |
+        pip install uvicorn
+        pip freeze > requirements.txt
+        echo "Contents of requirements.txt:"
+        cat requirements.txt
+
     - name: Set environment variables
       run: |
         echo "SQLALCHEMY_DATABASE_URL=${{ secrets.SQLALCHEMY_DATABASE_URL }}" >> $GITHUB_ENV
@@ -59,7 +66,7 @@ jobs:
     - name: Prepare and check deployment package
       run: |
         mkdir deploy && cp -r app requirements.txt deploy/
-        echo "gunicorn app.main:app --bind=0.0.0.0:8000 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
+        echo "gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind=0.0.0.0:8000" > deploy/startup.txt
         cd deploy && zip -r ../deploy.zip . -x "*.git*" "*.pytest_cache*" "*.mypy_cache*" "bd_data/*"
         echo "Size of deploy.zip:" && du -sh ../deploy.zip
         echo "Contents of deploy.zip:" && unzip -l ../deploy.zip
@@ -71,13 +78,14 @@ jobs:
         az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --linux-fx-version "PYTHON|3.10" --startup-file "startup.txt"
         az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings WEBSITE_RUN_FROM_PACKAGE=1
 
-    - name: Deploy to Azure Web App
-      run: |
-        az webapp deployment source config-zip --resource-group DataScienceProjectGroup --name datascienceproject-backend-12345 --src deploy.zip
-
-    - name: Check Web App configuration
+    - name: Check Azure Web App configuration
       run: |
         az webapp config show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{linuxFxVersion:linuxFxVersion,appCommandLine:appCommandLine}" -o table
+        az webapp config appsettings list --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup -o table
+
+    - name: Deploy to Azure Web App
+      run: |
+        az webapp deployment source config-zip --resource-group DataScienceProjectGroup --name datascienceproject-backend-12345 --src deploy.zip --debug
 
     - name: Check application logs
       run: |
