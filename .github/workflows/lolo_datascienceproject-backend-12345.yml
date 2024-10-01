@@ -48,6 +48,14 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    - name: Check Web App status
+      run: |
+        az webapp show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{name:name,state:state,hostNames:hostNames[0]}" -o table
+
+    - name: Clean Web App
+      run: |
+        az webapp deployment source delete --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
+
     - name: Prepare and check deployment package
       run: |
         mkdir deploy && cp -r app requirements.txt deploy/
@@ -55,23 +63,33 @@ jobs:
         cd deploy && zip -r ../deploy.zip . -x "*.git*" "*.pytest_cache*" "*.mypy_cache*" "bd_data/*"
         echo "Size of deploy.zip:" && du -sh ../deploy.zip
         echo "Contents of deploy.zip:" && unzip -l ../deploy.zip
+        echo "First few lines of startup.txt:"
+        unzip -p ../deploy.zip startup.txt | head -n 5
 
     - name: Check and update Azure Web App
       run: |
-        az webapp show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{name:name,state:state}" -o table
         az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --linux-fx-version "PYTHON|3.10" --startup-file "startup.txt"
         az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings WEBSITE_RUN_FROM_PACKAGE=1
 
     - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: 'datascienceproject-backend-12345'
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
-        package: ./deploy.zip
+      run: |
+        az webapp deployment source config-zip --resource-group DataScienceProjectGroup --name datascienceproject-backend-12345 --src deploy.zip
 
-    - name: Get deployment logs
-      if: always()
+    - name: Check Web App configuration
+      run: |
+        az webapp config show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{linuxFxVersion:linuxFxVersion,appCommandLine:appCommandLine}" -o table
+
+    - name: Check application logs
+      run: |
+        az webapp log show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{stdout:stdout,stderr:stderr}" -o table
+
+    - name: Get detailed deployment logs
+      if: failure()
       run: |
         az webapp log download --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
         unzip -p *.zip
+
+    - name: Tail deployment logs
+      if: always()
+      run: |
         az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
