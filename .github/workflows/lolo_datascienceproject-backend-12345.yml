@@ -17,7 +17,7 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install and configure dependencies
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install poetry
@@ -41,38 +41,26 @@ jobs:
         echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> $GITHUB_ENV
 
     - name: Run Alembic migrations
-      run: |
-        cd app
-        alembic upgrade head
-
-    - name: Create startup command file
-      run: |
-        echo "gunicorn app.main:app --bind=0.0.0.0:8000 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > startup.txt
+      run: cd app && alembic upgrade head
 
     - name: Azure Login
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Verify Azure Login and clean up old deployments
+    - name: Prepare and check deployment package
       run: |
-        az account show
-        az group list --query "[].name" -o tsv
-        az webapp deployment list --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "[?active==null].id" -o tsv | xargs -I % az webapp deployment delete --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --ids %
+        mkdir deploy && cp -r app requirements.txt deploy/
+        echo "gunicorn app.main:app --bind=0.0.0.0:8000 --timeout 600 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
+        cd deploy && zip -r ../deploy.zip . -x "*.git*" "*.pytest_cache*" "*.mypy_cache*" "bd_data/*"
+        echo "Size of deploy.zip:" && du -sh ../deploy.zip
+        echo "Contents of deploy.zip:" && unzip -l ../deploy.zip
 
-    - name: Prepare deployment package
+    - name: Check and update Azure Web App
       run: |
-        mkdir deploy
-        cp -r app requirements.txt startup.txt deploy/
-        cd deploy
-        zip -r ../deploy.zip . -x "*.git*" "*.pytest_cache*" "*.mypy_cache*" "bd_data/*"
-
-    - name: Check deployment package
-      run: |
-        echo "Size of deploy.zip:"
-        du -sh deploy.zip
-        echo "Contents of deploy.zip:"
-        unzip -l deploy.zip
+        az webapp show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{name:name,state:state}" -o table
+        az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --linux-fx-version "PYTHON|3.10" --startup-file "startup.txt"
+        az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings WEBSITE_RUN_FROM_PACKAGE=1
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
@@ -81,18 +69,9 @@ jobs:
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: ./deploy.zip
 
-    - name: Configure Azure Web App
-      run: |
-        az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings WEBSITE_RUN_FROM_PACKAGE=1
-        az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --linux-fx-version "PYTHON|3.10"
-
     - name: Get deployment logs
       if: always()
       run: |
-        az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
-
-    - name: Get detailed deployment logs
-      if: failure()
-      run: |
         az webapp log download --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
         unzip -p *.zip
+        az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
