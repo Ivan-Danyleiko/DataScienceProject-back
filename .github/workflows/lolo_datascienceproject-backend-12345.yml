@@ -29,6 +29,7 @@ jobs:
 
     - name: Update requirements.txt
       run: |
+        pip install uvicorn gunicorn fastapi
         pip freeze > requirements.txt
         echo "Contents of requirements.txt:"
         cat requirements.txt
@@ -90,23 +91,22 @@ jobs:
 
     - name: Deploy to Azure Web App
       run: |
-        az webapp deployment source config-zip --resource-group DataScienceProjectGroup --name datascienceproject-backend-12345 --src deploy.zip --debug --clean true
+        az webapp deployment source config-zip --resource-group DataScienceProjectGroup --name datascienceproject-backend-12345 --src deploy.zip
 
     - name: Restart Web App
       run: |
         az webapp restart --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
 
+    - name: Wait for app to start
+      run: |
+        sleep 30
+
     - name: Check application logs
       run: |
-        az webapp log show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{stdout:stdout,stderr:stderr}" -o table
+        az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
 
     - name: Get detailed deployment logs
       if: failure()
       run: |
         az webapp log download --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
         unzip -p *.zip
-
-    - name: Tail deployment logs
-      if: always()
-      run: |
-        az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
