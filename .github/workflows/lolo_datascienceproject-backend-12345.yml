@@ -94,6 +94,7 @@ jobs:
         app-name: 'datascienceproject-backend-12345'
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: ./deploy.zip
+        startup-command: 'gunicorn app.main:app --bind=0.0.0.0:$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker'
 
     - name: Restart Web App
       run: |
@@ -105,7 +106,7 @@ jobs:
 
     - name: Check application logs
       run: |
-        az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --filter Error
+        az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
 
     - name: Get detailed deployment logs
       if: failure()
