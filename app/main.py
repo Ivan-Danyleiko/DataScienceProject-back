@@ -11,7 +11,6 @@ from contextlib import asynccontextmanager
 
 import uvicorn.logging
 
-# from fastapi_limiter import FastAPILimiter
 from fastapi.middleware.cors import CORSMiddleware
 from src.conf.config import settings
 from src.database.db import engine, SessionLocal, get_db
@@ -81,9 +80,6 @@ def healthchecker(db: Session = Depends(get_db)) -> dict:
         raise HTTPException(status_code=500, detail="Database is not configured properly.")
     
 
-if __name__ == '__main__':
-    try:
-        uvicorn.run("main:app", host='127.0.0.1', port=8000, reload=True)
-    except KeyboardInterrupt:
-        os.kill(os.getpid(), signal.SIGBREAK)
-        os.kill(os.getpid(), signal.SIGTERM) 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
