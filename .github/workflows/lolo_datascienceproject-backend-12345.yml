@@ -64,13 +64,9 @@ jobs:
 
     - name: Prepare and check deployment package
       run: |
-        mkdir deploy && cp -r app requirements.txt deploy/
-        echo "gunicorn app.main:app --bind=0.0.0.0:$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
+        mkdir deploy && cp -r app requirements.txt web.config deploy/
+        echo "gunicorn app.main:app --bind=0.0.0.0:8000 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
         cd deploy && zip -r ../deploy.zip . -x "*.git*" "*.pytest_cache*" "*.mypy_cache*" "bd_data/*"
-        echo "Size of deploy.zip:" && du -sh ../deploy.zip
-        echo "Contents of deploy.zip:" && unzip -l ../deploy.zip
-        echo "First few lines of startup.txt:"
-        unzip -p ../deploy.zip startup.txt | head -n 5
 
     - name: Check deploy.zip content
       run: |
@@ -94,7 +90,6 @@ jobs:
         app-name: 'datascienceproject-backend-12345'
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: ./deploy.zip
-        startup-command: gunicorn app.main:app --bind=0.0.0.0:$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker
 
     - name: Restart Web App
       run: |
