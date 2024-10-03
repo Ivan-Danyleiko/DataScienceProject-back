@@ -64,9 +64,16 @@ jobs:
 
     - name: Prepare and check deployment package
       run: |
-        mkdir deploy && cp -r app requirements.txt web.config deploy/
-        echo "gunicorn app.main:app --bind=0.0.0.0:8000 --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
+        mkdir deploy
+        cp -r app requirements.txt web.config deploy/
+        echo "gunicorn app.main:app --bind=0.0.0.0:\$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
         cd deploy && zip -r ../deploy.zip . -x "*.git*" "*.pytest_cache*" "*.mypy_cache*" "bd_data/*"
+        echo "Size of deploy.zip:" && du -sh ../deploy.zip
+        echo "Contents of deploy.zip:" && unzip -l ../deploy.zip
+        echo "First few lines of startup.txt:"
+        unzip -p ../deploy.zip startup.txt | head -n 5
+        echo "Contents of web.config:"
+        unzip -p ../deploy.zip web.config
 
     - name: Check deploy.zip content
       run: |
@@ -90,6 +97,22 @@ jobs:
         app-name: 'datascienceproject-backend-12345'
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: ./deploy.zip
+
+    - name: Check Web App status after deployment
+      run: |
+        az webapp show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{name:name,state:state,hostNames:hostNames[0]}" -o table
+    
+    - name: Check Web App settings
+      run: |
+        az webapp config appsettings list --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --output table
+    
+    - name: Get deployment logs
+      run: |
+        az webapp log deployment show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
+    
+    - name: Check Web App availability
+      run: |
+        curl -I https://datascienceproject-backend-12345.azurewebsites.net
 
     - name: Restart Web App
       run: |
