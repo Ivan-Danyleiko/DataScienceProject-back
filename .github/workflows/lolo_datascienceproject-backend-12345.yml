@@ -147,10 +147,15 @@ jobs:
       run: |
         curl -I https://datascienceproject-backend-12345.azurewebsites.net
 
+    - name: Check Azure CLI version
+      run: az --version
+
     - name: Check app structure
       run: |
-        az webapp command exec --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --command "ls -R /home/site/wwwroot"
-        
+        publishingPassword=$(az webapp deployment list-publishing-profiles --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "[?publishMethod=='MSDeploy'].userPWD" -o tsv)
+        sshCommand="ls -R /home/site/wwwroot"
+        curl -X POST --user "\$datascienceproject-backend-12345:$publishingPassword" https://datascienceproject-backend-12345.scm.azurewebsites.net/api/command --data-urlencode "command=$sshCommand"
+
     - name: Restart Web App
       run: |
         az webapp restart --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
