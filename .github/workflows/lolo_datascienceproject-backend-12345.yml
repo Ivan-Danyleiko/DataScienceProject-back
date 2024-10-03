@@ -63,7 +63,7 @@ jobs:
       run: |
         mkdir deploy
         cp -r app requirements.txt deploy/
-        echo "/home/site/wwwroot/antenv/bin/gunicorn app.main:app --bind=0.0.0.0:\$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
+        echo "gunicorn app.main:app --bind=0.0.0.0:\$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
         echo '<?xml version="1.0" encoding="utf-8"?>
         <configuration>
           <system.webServer>
@@ -90,11 +90,7 @@ jobs:
       run: |
         chmod +x deploy/startup.txt
 
-    - name: Create virtual environment
-      run: |
-        python -m venv /home/site/wwwroot/antenv
-        source /home/site/wwwroot/antenv/bin/activate
-        pip install -r requirements.txt
+    # Видаляємо крок створення віртуального середовища, оскільки це буде зроблено Azure
 
     - name: Enable detailed logging
       run: |
@@ -114,8 +110,8 @@ jobs:
 
     - name: Check deployed package content
       run: |
-        az webapp ssh --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
-        ls -R /home/site/wwwroot
+        publishingPassword=$(az webapp deployment list-publishing-profiles --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "[?publishMethod=='MSDeploy'].userPWD" -o tsv)
+        curl -X POST --user "\$datascienceproject-backend-12345:$publishingPassword" https://datascienceproject-backend-12345.scm.azurewebsites.net/api/command --data-urlencode "command=dir /home/site/wwwroot -R"
 
     - name: Restart Web App
       run: |
