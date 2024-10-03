@@ -65,8 +65,28 @@ jobs:
     - name: Prepare and check deployment package
       run: |
         mkdir deploy
-        cp -r app requirements.txt web.config deploy/
+        cp -r app requirements.txt deploy/
         echo "gunicorn app.main:app --bind=0.0.0.0:\$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
+        echo '<?xml version="1.0" encoding="utf-8"?>
+        <configuration>
+          <system.webServer>
+            <handlers>
+              <add name="PythonHandler" path="*" verb="*" modules="FastCgiModule" scriptProcessor="D:\Python310\python.exe|D:\Python310\Lib\site-packages\wfastcgi.py" resourceType="Unspecified" requireAccess="Script"/>
+            </handlers>
+            <rewrite>
+              <rules>
+                <rule name="Configure Python" stopProcessing="true">
+                  <match url="(.*)" ignoreCase="false" />
+                  <conditions>
+                    <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+                    <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+                  </conditions>
+                  <action type="Rewrite" url="app/main.py" />
+                </rule>
+              </rules>
+            </rewrite>
+          </system.webServer>
+        </configuration>' > deploy/web.config
         cd deploy && zip -r ../deploy.zip . -x "*.git*" "*.pytest_cache*" "*.mypy_cache*" "bd_data/*"
         echo "Size of deploy.zip:" && du -sh ../deploy.zip
         echo "Contents of deploy.zip:" && unzip -l ../deploy.zip
@@ -80,6 +100,11 @@ jobs:
         unzip -l deploy.zip
         echo "Contents of requirements.txt:"
         unzip -p deploy.zip requirements.txt
+
+    - name: Enable detailed logging
+      run: |
+        az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --web-sockets-enabled true
+        az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings WEBSITE_HTTPLOGGING_RETENTION_DAYS=1
 
     - name: Check and update Azure Web App
       run: |
@@ -122,12 +147,23 @@ jobs:
       run: |
         sleep 60
 
+    - name: Check Web App status after restart
+      run: |
+        az webapp show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{name:name,state:state,hostNames:hostNames[0]}" -o table
+
     - name: Check application logs
       run: |
-        az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
+        timeout 300s az webapp log tail --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
+      continue-on-error: true
 
     - name: Get detailed deployment logs
-      if: failure()
       run: |
         az webapp log download --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
         unzip -p *.zip
+      continue-on-error: true
+
+    - name: Check error logs
+      run: |
+        az webapp log download --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --log-file webapp_logs.zip
+        unzip -p webapp_logs.zip | grep -i error
+      continue-on-error: true
