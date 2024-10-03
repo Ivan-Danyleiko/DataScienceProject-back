@@ -149,9 +149,8 @@ jobs:
 
     - name: Check app structure
       run: |
-        az webapp ssh --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup & sleep 10
-        az webapp ssh --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --command "ls -R /home/site/wwwroot"
-
+        az webapp command exec --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --command "ls -R /home/site/wwwroot"
+        
     - name: Restart Web App
       run: |
         az webapp restart --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
