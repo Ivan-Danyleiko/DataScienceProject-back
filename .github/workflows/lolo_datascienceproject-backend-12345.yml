@@ -66,7 +66,7 @@ jobs:
       run: |
         mkdir deploy
         cp -r app requirements.txt deploy/
-        echo "gunicorn app.main:app --bind=0.0.0.0:\$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
+        echo "/home/site/wwwroot/env/bin/gunicorn app.main:app --bind=0.0.0.0:\$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
         echo '<?xml version="1.0" encoding="utf-8"?>
         <configuration>
           <system.webServer>
@@ -95,6 +95,10 @@ jobs:
         echo "Contents of web.config:"
         unzip -p ../deploy.zip web.config
 
+    - name: Set permissions for startup files
+      run: |
+        chmod +x deploy/startup.txt
+
     - name: Check deploy.zip content
       run: |
         unzip -l deploy.zip
@@ -110,6 +114,10 @@ jobs:
       run: |
         az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --linux-fx-version "PYTHON|3.10" --startup-file "startup.txt"
         az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings WEBSITE_RUN_FROM_PACKAGE=1
+
+    - name: Set PYTHONPATH
+      run: |
+        az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings PYTHONPATH="/home/site/wwwroot"
 
     - name: Check Azure Web App configuration
       run: |
@@ -138,6 +146,10 @@ jobs:
     - name: Check Web App availability
       run: |
         curl -I https://datascienceproject-backend-12345.azurewebsites.net
+
+    - name: Check app structure
+      run: |
+        az webapp ssh --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --command "ls -R /home/site/wwwroot"
 
     - name: Restart Web App
       run: |
