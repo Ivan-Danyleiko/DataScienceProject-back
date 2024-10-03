@@ -30,6 +30,7 @@ jobs:
     - name: Update requirements.txt
       run: |
         pip freeze > requirements.txt
+        echo "uvicorn==0.17.6" >> requirements.txt
         echo "Contents of requirements.txt:"
         cat requirements.txt
 
@@ -54,19 +55,15 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Check Web App status
+    - name: Configure Web App
       run: |
-        az webapp show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{name:name,state:state,hostNames:hostNames[0]}" -o table
-
-    - name: Clean Web App
-      run: |
-        az webapp deployment source delete --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
+        az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --linux-fx-version "PYTHON|3.10"
 
     - name: Prepare and check deployment package
       run: |
         mkdir deploy
         cp -r app requirements.txt deploy/
-        echo "/home/site/wwwroot/env/bin/gunicorn app.main:app --bind=0.0.0.0:\$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
+        echo "/home/site/wwwroot/antenv/bin/gunicorn app.main:app --bind=0.0.0.0:\$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker" > deploy/startup.txt
         echo '<?xml version="1.0" encoding="utf-8"?>
         <configuration>
           <system.webServer>
@@ -88,41 +85,25 @@ jobs:
           </system.webServer>
         </configuration>' > deploy/web.config
         cd deploy && zip -r ../deploy.zip . -x "*.git*" "*.pytest_cache*" "*.mypy_cache*" "bd_data/*"
-        echo "Size of deploy.zip:" && du -sh ../deploy.zip
-        echo "Contents of deploy.zip:" && unzip -l ../deploy.zip
-        echo "First few lines of startup.txt:"
-        unzip -p ../deploy.zip startup.txt | head -n 5
-        echo "Contents of web.config:"
-        unzip -p ../deploy.zip web.config
 
     - name: Set permissions for startup files
       run: |
         chmod +x deploy/startup.txt
 
-    - name: Check deploy.zip content
+    - name: Create virtual environment
       run: |
-        unzip -l deploy.zip
-        echo "Contents of requirements.txt:"
-        unzip -p deploy.zip requirements.txt
+        python -m venv /home/site/wwwroot/antenv
+        source /home/site/wwwroot/antenv/bin/activate
+        pip install -r requirements.txt
 
     - name: Enable detailed logging
       run: |
         az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --web-sockets-enabled true
         az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings WEBSITE_HTTPLOGGING_RETENTION_DAYS=1
 
-    - name: Check and update Azure Web App
-      run: |
-        az webapp config set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --linux-fx-version "PYTHON|3.10" --startup-file "startup.txt"
-        az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings WEBSITE_RUN_FROM_PACKAGE=1
-
     - name: Set PYTHONPATH
       run: |
         az webapp config appsettings set --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --settings PYTHONPATH="/home/site/wwwroot"
-
-    - name: Check Azure Web App configuration
-      run: |
-        az webapp config show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{linuxFxVersion:linuxFxVersion,appCommandLine:appCommandLine}" -o table
-        az webapp config appsettings list --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup -o table
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
@@ -131,30 +112,10 @@ jobs:
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: ./deploy.zip
 
-    - name: Check Web App status after deployment
+    - name: Check deployed package content
       run: |
-        az webapp show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "{name:name,state:state,hostNames:hostNames[0]}" -o table
-    
-    - name: Check Web App settings
-      run: |
-        az webapp config appsettings list --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --output table
-    
-    - name: Get deployment logs
-      run: |
-        az webapp log deployment show --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
-    
-    - name: Check Web App availability
-      run: |
-        curl -I https://datascienceproject-backend-12345.azurewebsites.net
-
-    - name: Check Azure CLI version
-      run: az --version
-
-    - name: Check app structure
-      run: |
-        publishingPassword=$(az webapp deployment list-publishing-profiles --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup --query "[?publishMethod=='MSDeploy'].userPWD" -o tsv)
-        sshCommand="ls -R /home/site/wwwroot"
-        curl -X POST --user "\$datascienceproject-backend-12345:$publishingPassword" https://datascienceproject-backend-12345.scm.azurewebsites.net/api/command --data-urlencode "command=$sshCommand"
+        az webapp ssh --name datascienceproject-backend-12345 --resource-group DataScienceProjectGroup
+        ls -R /home/site/wwwroot
 
     - name: Restart Web App
       run: |
